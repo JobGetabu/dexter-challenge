@@ -16,6 +16,9 @@ For help getting started with Flutter development, view the
 samples, guidance on mobile development, and a full API reference.
 
 
+### [Get the APK here](https://github.com/JobGetabu/dexter-challenge/blob/main/apk/app-release.apk)
+
+
 <div style="text-align: center">
     <table>
         <tr>
@@ -42,3 +45,10 @@ samples, guidance on mobile development, and a full API reference.
         </tr>
     </table>
 </div>
+
+
+### TODO
+
+- [ ] Add bloc tests
+- [ ] Add some widget tests
+- [ ] Implement search 
