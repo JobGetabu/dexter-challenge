@@ -1,10 +1,9 @@
-import 'package:dexter_todo/models/task.dart';
 import 'package:flutter/material.dart';
 
 import '../constants/colors.dart';
 
 class ToDoItem extends StatelessWidget {
-  final ToDo todo;
+  final Map<String, dynamic> todo;
   final onToDoChanged;
   final onDeleteItem;
 
@@ -30,17 +29,26 @@ class ToDoItem extends StatelessWidget {
         contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
         tileColor: Colors.white,
         leading: Icon(
-          todo.isDone ? Icons.check_box : Icons.check_box_outline_blank,
+          (todo['taskDone'] as bool) ? Icons.check_box : Icons.check_box_outline_blank,
           color: tdBlue,
         ),
         title: Text(
-          todo.todoText!,
+          '${todo['taskName']}',
           style: TextStyle(
             fontSize: 16,
             color: tdBlack,
-            decoration: todo.isDone ? TextDecoration.lineThrough : null,
+            decoration: (todo['taskDone'] as bool)? TextDecoration.lineThrough : null,
           ),
         ),
+        subtitle: Text(
+          ' Patient🤒: ${todo['taskResident']}\n Nurse🥼: ${todo['taskOwner']}',
+          style: TextStyle(
+            fontSize: 14,
+            color: tdGrey,
+            decoration: (todo['taskDone'] as bool)? TextDecoration.lineThrough : null,
+          ),
+        ),
+        isThreeLine: true,
         trailing: Container(
           padding: EdgeInsets.all(0),
           margin: EdgeInsets.symmetric(vertical: 12),
@@ -56,7 +64,7 @@ class ToDoItem extends StatelessWidget {
             icon: Icon(Icons.delete),
             onPressed: () {
               // print('Clicked on delete icon');
-              onDeleteItem(todo.id);
+              onDeleteItem('${todo['taskId']}');
             },
           ),
         ),

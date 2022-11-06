@@ -1,24 +1,28 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dexter_todo/bloc/task_cubit/task_cubit.dart';
 import 'package:dexter_todo/models/task.dart';
 import 'package:dexter_todo/screens/make_new_task.dart';
 import 'package:dexter_todo/widgets/todo_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animator/flutter_animator.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:page_transition/page_transition.dart';
 
 import '../constants/colors.dart';
 
 class Home extends StatefulWidget {
-  Home({Key? key}) : super(key: key);
+  final Map<String, dynamic> user;
+
+  Home({Key? key, required this.user}) : super(key: key);
 
   @override
   State<Home> createState() => _HomeState();
 }
 
 class _HomeState extends State<Home> {
-  var todosList = ToDo.todoList();
-  final todosList2 = ToDo.todoList2();
-
-  final _todoController = TextEditingController();
+  var myTasks = [];
+  var otherTasks = [];
 
   @override
   void initState() {
@@ -29,96 +33,138 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: tdBGColor,
-      body: SafeArea(
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 15,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: CustomScrollView(
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 16, bottom: 16.0),
-                        child: Text(
-                          'Today\'s Tasks',
-                          style: TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SliverToBoxAdapter(
-                      child: searchBox(),
-                    ),
+      body: BlocProvider(
+        create: (context) => TaskCubit(FirebaseFirestore.instance, widget.user)..getTasks(),
+        child: BlocConsumer<TaskCubit, TaskState>(
+          listener: (context, state) {
+            state.maybeWhen(
+                getTasks: (tasks) async {
+                  myTasks = tasks;
+                },
 
-                    SliverToBoxAdapter(
-                      child: FadeIn(
-                        child: Container(
-                          margin: EdgeInsets.only(
-                            top: 50,
-                            bottom: 20,
-                          ),
-                          child: Text(
-                            'Your Tasks',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w500,
+                getTasksOther: (tasks) async {
+                  otherTasks = tasks;
+                },
+
+                error: (error) {
+                  Fluttertoast.showToast(
+                      msg: error,
+                      toastLength: Toast.LENGTH_SHORT,
+                      gravity: ToastGravity.BOTTOM,
+                      timeInSecForIosWeb: 5,
+                      textColor: Colors.red,
+                      fontSize: 14.0);
+                },
+                orElse: () => false);
+          },
+          builder: (context, state) {
+            return SafeArea(
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 15,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: CustomScrollView(
+                        slivers: [
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.only(top: 16, bottom: 16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Hey👋🏾 ${widget.user['name']}',
+                                    style: TextStyle(
+                                      fontSize: 30,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    '🩺 ${widget.user['currentShift']} shift',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: tdBlue,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    ),
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (BuildContext context, int index) {
-                          return ToDoItem(
-                            todo: todosList[index],
-                            onToDoChanged: _handleToDoChange,
-                            onDeleteItem: _deleteToDoItem,
-                          );
-                        },
-                        childCount: todosList.length,
-                      ),
-                    ),
-                    SliverToBoxAdapter(
-                      child: Container(
-                        margin: EdgeInsets.only(
-                          top: 50,
-                          bottom: 20,
-                        ),
-                        child: Text(
-                          'More Tasks',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w500,
+                          SliverToBoxAdapter(
+                            child: searchBox(),
                           ),
-                        ),
+                          SliverToBoxAdapter(
+                            child: FadeIn(
+                              child: Container(
+                                margin: EdgeInsets.only(
+                                  top: 50,
+                                  bottom: 20,
+                                ),
+                                child: Text(
+                                  'Your Tasks',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (BuildContext context, int index) {
+                                return ToDoItem(
+                                  todo: myTasks[index],
+                                  onToDoChanged: _handleToDoChange,
+                                  onDeleteItem: _deleteToDoItem,
+                                );
+                              },
+                              childCount: myTasks.length,
+                            ),
+                          ),
+                          SliverToBoxAdapter(
+                            child: Container(
+                              margin: EdgeInsets.only(
+                                top: 50,
+                                bottom: 20,
+                              ),
+                              child: Text(
+                                'More Tasks',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (BuildContext context, int index) {
+                                return ToDoItem(
+                                  todo: otherTasks[index],
+                                  onToDoChanged: _handleToDoChangeOther,
+                                  onDeleteItem: _handleToDoChangeOther,
+                                );
+                              },
+                              childCount: otherTasks.length,
+                            ),
+                          ),
+                          SliverToBoxAdapter(child: SizedBox(height: 80)),
+                        ],
                       ),
                     ),
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (BuildContext context, int index) {
-                          return ToDoItem(
-                            todo: todosList2[index],
-                            onToDoChanged: _handleToDoChange,
-                            onDeleteItem: _deleteToDoItem,
-                          );
-                        },
-                        childCount: todosList2.length,
-                      ),
-                    ),
-                    SliverToBoxAdapter(child: SizedBox(height: 80)),
                   ],
                 ),
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
       floatingActionButton: BounceInUp(
@@ -136,7 +182,10 @@ class _HomeState extends State<Home> {
             ),
             onPressed: () async {
               await Navigator.of(context).push(PageTransition(
-                  type: PageTransitionType.fade, child: const Note_Task()));
+                  type: PageTransitionType.fade,
+                  child: Note_Task(
+                    user: widget.user,
+                  )));
               //_addToDoItem(_todoController.text);
             },
             style: ElevatedButton.styleFrom(
@@ -150,82 +199,24 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Align addNew() {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Row(children: [
-        Expanded(
-          child: Container(
-            margin: EdgeInsets.only(
-              bottom: 20,
-              right: 20,
-              left: 20,
-            ),
-            padding: EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 5,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.grey,
-                  offset: Offset(0.0, 0.0),
-                  blurRadius: 10.0,
-                  spreadRadius: 0.0,
-                ),
-              ],
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: TextField(
-              controller: _todoController,
-              decoration: InputDecoration(
-                  hintText: 'Add a new todo item', border: InputBorder.none),
-            ),
-          ),
-        ),
-      ]),
-    );
+  void _handleToDoChange(String taskId) {
+    context.read<TaskCubit>().updateTask(taskId);
   }
 
-  void _handleToDoChange(ToDo todo) {
-    setState(() {
-      todo.isDone = !todo.isDone;
-    });
+  void _handleToDoChangeOther(ToDo todo) {
+    Fluttertoast.showToast(
+        msg: 'This is not your task to complete',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 5,
+        textColor: Colors.red,
+        fontSize: 14.0);
   }
 
-  void _deleteToDoItem(String id) {
-    setState(() {
-      todosList.removeWhere((item) => item.id == id);
-    });
+  void _deleteToDoItem(String taskId) {
+    context.read<TaskCubit>().deleteTask(taskId);
   }
 
-  void _addToDoItem(String toDo) {
-    setState(() {
-      todosList.add(ToDo(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        todoText: toDo,
-      ));
-    });
-    _todoController.clear();
-  }
-
-  void _runFilter(String enteredKeyword) {
-    List<ToDo> results = [];
-    if (enteredKeyword.isEmpty) {
-      results = todosList;
-    } else {
-      results = todosList
-          .where((item) => item.todoText!
-              .toLowerCase()
-              .contains(enteredKeyword.toLowerCase()))
-          .toList();
-    }
-
-    setState(() {
-      todosList = results;
-    });
-  }
 
   Widget searchBox() {
     return Container(
@@ -235,7 +226,7 @@ class _HomeState extends State<Home> {
         borderRadius: BorderRadius.circular(20),
       ),
       child: TextField(
-        onChanged: (value) => _runFilter(value),
+        //onChanged: (value) => _runFilter(value), //TODO: create search filter
         decoration: InputDecoration(
           contentPadding: EdgeInsets.all(0),
           prefixIcon: Icon(
@@ -252,28 +243,6 @@ class _HomeState extends State<Home> {
           hintStyle: TextStyle(color: tdGrey),
         ),
       ),
-    );
-  }
-
-  AppBar _buildAppBar() {
-    return AppBar(
-      backgroundColor: tdBGColor,
-      elevation: 0,
-      title: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Icon(
-          Icons.menu,
-          color: tdBlack,
-          size: 30,
-        ),
-        Container(
-          height: 40,
-          width: 40,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Image.asset('assets/images/avatar.jpeg'),
-          ),
-        ),
-      ]),
     );
   }
 }

@@ -8,6 +8,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'constants/colors.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   await _initFirebase();
   runApp(const MyApp());
 }
