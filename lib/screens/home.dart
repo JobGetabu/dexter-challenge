@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dexter_todo/bloc/task_cubit/task_cubit.dart';
-import 'package:dexter_todo/models/task.dart';
 import 'package:dexter_todo/screens/make_new_task.dart';
 import 'package:dexter_todo/widgets/todo_item.dart';
 import 'package:flutter/material.dart';
@@ -34,18 +33,11 @@ class _HomeState extends State<Home> {
     return Scaffold(
       backgroundColor: tdBGColor,
       body: BlocProvider(
-        create: (context) => TaskCubit(FirebaseFirestore.instance, widget.user)..getTasks(),
+        create: (context) =>
+            TaskCubit(FirebaseFirestore.instance, widget.user)..getMyTasks(),
         child: BlocConsumer<TaskCubit, TaskState>(
           listener: (context, state) {
             state.maybeWhen(
-                getTasks: (tasks) async {
-                  myTasks = tasks;
-                },
-
-                getTasksOther: (tasks) async {
-                  otherTasks = tasks;
-                },
-
                 error: (error) {
                   Fluttertoast.showToast(
                       msg: error,
@@ -117,16 +109,29 @@ class _HomeState extends State<Home> {
                               ),
                             ),
                           ),
-                          SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (BuildContext context, int index) {
-                                return ToDoItem(
-                                  todo: myTasks[index],
-                                  onToDoChanged: _handleToDoChange,
-                                  onDeleteItem: _deleteToDoItem,
-                                );
-                              },
-                              childCount: myTasks.length,
+                          state.maybeWhen(
+                            getTasks: (tasks) {
+                              var myTasks = tasks
+                                  .where((e) =>
+                                      e['taskOwner'] == widget.user['name'])
+                                  .toList();
+                              return SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (BuildContext context, int index) {
+                                    return ToDoItem(
+                                      todo: myTasks[index],
+                                      onToDoChanged: () => _handleToDoChange(
+                                          context, myTasks[index]['taskId']),
+                                      onDeleteItem: () => _deleteToDoItem(
+                                          context, myTasks[index]['taskId']),
+                                    );
+                                  },
+                                  childCount: myTasks.length,
+                                ),
+                              );
+                            },
+                            orElse: () => SliverToBoxAdapter(
+                              child: SizedBox(),
                             ),
                           ),
                           SliverToBoxAdapter(
@@ -144,16 +149,28 @@ class _HomeState extends State<Home> {
                               ),
                             ),
                           ),
-                          SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (BuildContext context, int index) {
-                                return ToDoItem(
-                                  todo: otherTasks[index],
-                                  onToDoChanged: _handleToDoChangeOther,
-                                  onDeleteItem: _handleToDoChangeOther,
-                                );
-                              },
-                              childCount: otherTasks.length,
+                          state.maybeWhen(
+                            getTasks: (tasks) {
+                              var otherTasks = tasks
+                                  .where((e) =>
+                                      e['taskOwner'] != widget.user['name'])
+                                  .toList();
+
+                              return SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (BuildContext context, int index) {
+                                    return ToDoItem(
+                                      todo: otherTasks[index],
+                                      onToDoChanged: _handleToDoChangeOther,
+                                      onDeleteItem: _handleToDoChangeOther,
+                                    );
+                                  },
+                                  childCount: otherTasks.length,
+                                ),
+                              );
+                            },
+                            orElse: () => SliverToBoxAdapter(
+                              child: SizedBox(),
                             ),
                           ),
                           SliverToBoxAdapter(child: SizedBox(height: 80)),
@@ -199,11 +216,11 @@ class _HomeState extends State<Home> {
     );
   }
 
-  void _handleToDoChange(String taskId) {
-    context.read<TaskCubit>().updateTask(taskId);
+  void _handleToDoChange(BuildContext ctx, String taskId) {
+    ctx.read<TaskCubit>().updateTask(taskId);
   }
 
-  void _handleToDoChangeOther(ToDo todo) {
+  void _handleToDoChangeOther() {
     Fluttertoast.showToast(
         msg: 'This is not your task to complete',
         toastLength: Toast.LENGTH_SHORT,
@@ -213,10 +230,9 @@ class _HomeState extends State<Home> {
         fontSize: 14.0);
   }
 
-  void _deleteToDoItem(String taskId) {
+  void _deleteToDoItem(BuildContext ctx, String taskId) {
     context.read<TaskCubit>().deleteTask(taskId);
   }
-
 
   Widget searchBox() {
     return Container(

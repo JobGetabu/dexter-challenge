@@ -38,8 +38,7 @@ class TaskCubit extends Cubit<TaskState> {
       emit(TaskState.error('$e'));
     }
   }
-
-  void getTasks() {
+  void getTasks(){
     getMyTasks();
     getOtherTasks();
   }
@@ -50,7 +49,7 @@ class TaskCubit extends Cubit<TaskState> {
 
       FirebaseFirestore.instance
           .collection('tasks')
-          .where('taskOwner', isEqualTo: user['name'])
+          //.where('taskOwner', isEqualTo: user['name'])
           .where('taskDeleted', isEqualTo: false)
           .orderBy('createdAt', descending: true)
           .snapshots()
@@ -70,12 +69,13 @@ class TaskCubit extends Cubit<TaskState> {
 
   void getOtherTasks() {
     try {
-      emit(TaskState.loading());
+      //emit(TaskState.loading());
 
       FirebaseFirestore.instance
           .collection('tasks')
           .where('taskOwner', isNotEqualTo: user['name'])
-          .orderBy('createdAt', descending: true)
+          .where('taskDeleted', isEqualTo: false)
+          //.orderBy('createdAt', descending: true)
           .snapshots()
           .listen((event) {
         List<Map<String, dynamic>> tasks = [];
@@ -91,17 +91,17 @@ class TaskCubit extends Cubit<TaskState> {
     }
   }
 
-  void deleteTask(String taskId) {
+  void deleteTask(String taskId) async {
     try {
-      FirebaseFirestore.instance.collection('tasks').doc(taskId).update({
+      await FirebaseFirestore.instance.collection('tasks').doc(taskId).update({
         'taskDeleted': true,
       });
     } catch (e) {}
   }
 
-  void updateTask(String taskId) {
+  void updateTask(String taskId) async {
     try {
-      FirebaseFirestore.instance.collection('tasks').doc(taskId).update({
+      await FirebaseFirestore.instance.collection('tasks').doc(taskId).update({
         'taskDone': true,
       });
     } catch (e) {}

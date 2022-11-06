@@ -4,8 +4,8 @@ import '../constants/colors.dart';
 
 class ToDoItem extends StatelessWidget {
   final Map<String, dynamic> todo;
-  final onToDoChanged;
-  final onDeleteItem;
+  final Function onToDoChanged;
+  final Function onDeleteItem;
 
   const ToDoItem({
     Key? key,
@@ -20,8 +20,7 @@ class ToDoItem extends StatelessWidget {
       margin: EdgeInsets.only(bottom: 20),
       child: ListTile(
         onTap: () {
-          // print('Clicked on Todo Item.');
-          onToDoChanged(todo);
+          onToDoChanged.call();
         },
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -63,8 +62,7 @@ class ToDoItem extends StatelessWidget {
             iconSize: 18,
             icon: Icon(Icons.delete),
             onPressed: () {
-              // print('Clicked on delete icon');
-              onDeleteItem('${todo['taskId']}');
+              onDeleteItem.call();
             },
           ),
         ),
