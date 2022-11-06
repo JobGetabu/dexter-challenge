@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dexter_todo/bloc/task_cubit/task_cubit.dart';
 import 'package:dexter_todo/screens/make_new_task.dart';
 import 'package:dexter_todo/widgets/todo_item.dart';
+import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animator/flutter_animator.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -30,27 +31,38 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: tdBGColor,
-      body: BlocProvider(
-        create: (context) =>
-            TaskCubit(FirebaseFirestore.instance, widget.user)..getMyTasks(),
-        child: BlocConsumer<TaskCubit, TaskState>(
-          listener: (context, state) {
-            state.maybeWhen(
-                error: (error) {
-                  Fluttertoast.showToast(
-                      msg: error,
-                      toastLength: Toast.LENGTH_SHORT,
-                      gravity: ToastGravity.BOTTOM,
-                      timeInSecForIosWeb: 5,
-                      textColor: Colors.red,
-                      fontSize: 14.0);
-                },
-                orElse: () => false);
-          },
-          builder: (context, state) {
-            return SafeArea(
+    return BlocProvider(
+      create: (context) =>
+          TaskCubit(FirebaseFirestore.instance, widget.user)..getMyTasks(),
+      child: BlocConsumer<TaskCubit, TaskState>(
+        listener: (context, state) {
+          Fimber.e(widget.user['name']);
+          state.maybeWhen(
+              getTasks: (tasks) async {
+                myTasks = tasks
+                    .where((e) => e['taskOwner'] == widget.user['name'])
+                    .toList();
+                otherTasks = tasks
+                    .where((e) => e['taskOwner'] != widget.user['name'])
+                    .toList();
+                setState(() {});
+              },
+              getTasksOther: (tasks) async {},
+              error: (error) {
+                Fluttertoast.showToast(
+                    msg: error,
+                    toastLength: Toast.LENGTH_SHORT,
+                    gravity: ToastGravity.BOTTOM,
+                    timeInSecForIosWeb: 5,
+                    textColor: Colors.red,
+                    fontSize: 14.0);
+              },
+              orElse: () => false);
+        },
+        builder: (context, state) {
+          return Scaffold(
+            backgroundColor: tdBGColor,
+            body: SafeArea(
               child: Container(
                 padding: EdgeInsets.symmetric(
                   horizontal: 20,
@@ -111,10 +123,6 @@ class _HomeState extends State<Home> {
                           ),
                           state.maybeWhen(
                             getTasks: (tasks) {
-                              var myTasks = tasks
-                                  .where((e) =>
-                                      e['taskOwner'] == widget.user['name'])
-                                  .toList();
                               return SliverList(
                                 delegate: SliverChildBuilderDelegate(
                                   (BuildContext context, int index) {
@@ -149,28 +157,16 @@ class _HomeState extends State<Home> {
                               ),
                             ),
                           ),
-                          state.maybeWhen(
-                            getTasks: (tasks) {
-                              var otherTasks = tasks
-                                  .where((e) =>
-                                      e['taskOwner'] != widget.user['name'])
-                                  .toList();
-
-                              return SliverList(
-                                delegate: SliverChildBuilderDelegate(
-                                  (BuildContext context, int index) {
-                                    return ToDoItem(
-                                      todo: otherTasks[index],
-                                      onToDoChanged: _handleToDoChangeOther,
-                                      onDeleteItem: _handleToDoChangeOther,
-                                    );
-                                  },
-                                  childCount: otherTasks.length,
-                                ),
-                              );
-                            },
-                            orElse: () => SliverToBoxAdapter(
-                              child: SizedBox(),
+                          SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (BuildContext context, int index) {
+                                return ToDoItem(
+                                  todo: otherTasks[index],
+                                  onToDoChanged: _handleToDoChangeOther,
+                                  onDeleteItem: _handleToDoChangeOther,
+                                );
+                              },
+                              childCount: otherTasks.length,
                             ),
                           ),
                           SliverToBoxAdapter(child: SizedBox(height: 80)),
@@ -180,38 +176,40 @@ class _HomeState extends State<Home> {
                   ],
                 ),
               ),
-            );
-          },
-        ),
-      ),
-      floatingActionButton: BounceInUp(
-        child: Container(
-          margin: EdgeInsets.only(
-            bottom: 20,
-            right: 20,
-          ),
-          child: ElevatedButton(
-            child: Text(
-              '+',
-              style: TextStyle(
-                fontSize: 40,
+            ),
+            floatingActionButton: BounceInUp(
+              child: Container(
+                margin: EdgeInsets.only(
+                  bottom: 20,
+                  right: 20,
+                ),
+                child: ElevatedButton(
+                  child: Text(
+                    '+',
+                    style: TextStyle(
+                      fontSize: 40,
+                    ),
+                  ),
+                  onPressed: () async {
+                    await Navigator.of(context)
+                        .push(PageTransition(
+                            type: PageTransitionType.fade,
+                            child: Note_Task(
+                              user: widget.user,
+                            )))
+                        .then((value) => context.read<TaskCubit>()..getTasks());
+                    //_addToDoItem(_todoController.text);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    primary: tdBlue,
+                    minimumSize: Size(60, 60),
+                    elevation: 10,
+                  ),
+                ),
               ),
             ),
-            onPressed: () async {
-              await Navigator.of(context).push(PageTransition(
-                  type: PageTransitionType.fade,
-                  child: Note_Task(
-                    user: widget.user,
-                  )));
-              //_addToDoItem(_todoController.text);
-            },
-            style: ElevatedButton.styleFrom(
-              primary: tdBlue,
-              minimumSize: Size(60, 60),
-              elevation: 10,
-            ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
