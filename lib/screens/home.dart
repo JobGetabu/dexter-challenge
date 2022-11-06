@@ -1,7 +1,9 @@
 import 'package:dexter_todo/models/task.dart';
+import 'package:dexter_todo/screens/make_new_task.dart';
 import 'package:dexter_todo/widgets/todo_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animator/flutter_animator.dart';
+import 'package:page_transition/page_transition.dart';
 
 import '../constants/colors.dart';
 
@@ -54,7 +56,7 @@ class _HomeState extends State<Home> {
                     SliverToBoxAdapter(
                       child: searchBox(),
                     ),
-                    SliverToBoxAdapter(child: SizedBox(height: 16)),
+
                     SliverToBoxAdapter(
                       child: FadeIn(
                         child: Container(
@@ -84,7 +86,6 @@ class _HomeState extends State<Home> {
                         childCount: todosList.length,
                       ),
                     ),
-                    SliverToBoxAdapter(child: SizedBox(height: 16)),
                     SliverToBoxAdapter(
                       child: Container(
                         margin: EdgeInsets.only(
@@ -133,8 +134,10 @@ class _HomeState extends State<Home> {
                 fontSize: 40,
               ),
             ),
-            onPressed: () {
-              _addToDoItem(_todoController.text);
+            onPressed: () async {
+              await Navigator.of(context).push(PageTransition(
+                  type: PageTransitionType.fade, child: const Note_Task()));
+              //_addToDoItem(_todoController.text);
             },
             style: ElevatedButton.styleFrom(
               primary: tdBlue,
